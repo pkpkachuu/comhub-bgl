@@ -1,0 +1,266 @@
+{
+  "contestants": [
+    {
+      "id": "c1",
+      "name": "Aarav Sharma",
+      "department": "Computer Science & Engineering",
+      "year": "3rd Year",
+      "actTitle": "Sarcastic Code Roasts & Standup",
+      "category": "Stand-Up Comedy",
+      "bio": "Turns pull request rejections, hostel mess horror stories, and debugging misery into sharp observational punchlines.",
+      "photoUrl": "/uploads/contestant_aarav.jpg",
+      "order": 1,
+      "token": "bgt-c1-2d51",
+      "createdAt": "2026-10-31T18:42:47.435Z",
+      "isVisible": true,
+      "isFeatured": true
+    },
+    {
+      "id": "c2",
+      "name": "Priya Nair",
+      "department": "Mechanical Engineering",
+      "year": "4th Year",
+      "actTitle": "Acoustic Beatbox & Carnatic Fusion",
+      "category": "Vocal Performance",
+      "bio": "Blends ancient classical ragas with 140 BPM acoustic beatbox basslines, composed during lathe machine lab hours.",
+      "photoUrl": "/uploads/contestant_priya.jpg",
+      "order": 2,
+      "token": "bgt-c2-4b7e",
+      "createdAt": "2026-10-31T18:42:47.436Z",
+      "isVisible": true,
+      "isFeatured": true
+    },
+    {
+      "id": "c3",
+      "name": "Rohan & Dev",
+      "department": "Electrical & Electronics",
+      "year": "2nd Year",
+      "actTitle": "The Quantum Mentalism Duo",
+      "category": "Mentalism & Illusion",
+      "bio": "Predicting your exact semester CGPA, unread WhatsApp messages, and forgotten childhood crushes.",
+      "photoUrl": "/uploads/contestant_rohan_dev.jpg",
+      "order": 3,
+      "token": "bgt-c3-8c1d",
+      "createdAt": "2026-10-31T18:42:47.436Z",
+      "isVisible": true,
+      "isFeatured": true
+    },
+    {
+      "id": "c4",
+      "name": "Ananya Deshmukh",
+      "department": "Chemical Engineering",
+      "year": "1st Year",
+      "actTitle": "Flamenco Percussion & Spoken Word",
+      "category": "Poetry & Rhythmic Tap",
+      "bio": "A high-velocity spoken word monologue structured around rhythmic flamenco heel taps on a hollow wooden box.",
+      "photoUrl": "/uploads/contestant_ananya.jpg",
+      "order": 4,
+      "token": "bgt-c4-3e9a",
+      "createdAt": "2026-10-31T18:42:47.436Z",
+      "isVisible": true,
+      "isFeatured": true
+    }
+  ],
+  "microInfluencers": [
+    {
+      "id": "inf1",
+      "name": "Jomedy",
+      "handle": "@jomedy",
+      "role": "Guest Judge",
+      "bio": "Stand-up comedian and content creator. Guest evaluator on the BITS GOT LATENT panel.",
+      "quote": "",
+      "photoUrl": "/uploads/judge_jomedy.jpg",
+      "isVisible": true,
+      "isFeatured": true
+    },
+    {
+      "id": "inf2",
+      "name": "Priyanshu",
+      "handle": "@priyanshu",
+      "role": "Guest Judge",
+      "bio": "Digital entertainer and satirist. Guest evaluator on the BITS GOT LATENT panel.",
+      "quote": "",
+      "photoUrl": "/uploads/judge_priyanshu.jpg",
+      "isVisible": true,
+      "isFeatured": true
+    }
+  ],
+  "evaluators": [
+    {
+      "id": "jomedy",
+      "name": "Jomedy",
+      "role": "Judge",
+      "title": "Guest Judge 01",
+      "passcode": "jomedy",
+      "photoUrl": "/uploads/judge_jomedy.jpg"
+    },
+    {
+      "id": "priyanshu",
+      "name": "Priyanshu",
+      "role": "Judge",
+      "title": "Guest Judge 02",
+      "passcode": "priyanshu",
+      "photoUrl": "/uploads/judge_priyanshu.jpg"
+    },
+    {
+      "id": "arbiter_1",
+      "name": "ComHub Arbiter 1",
+      "role": "Arbiter",
+      "title": "ComHub Arbiter 01",
+      "passcode": "arbiter1",
+      "photoUrl": "/uploads/arbiter_1.jpg"
+    },
+    {
+      "id": "arbiter_2",
+      "name": "ComHub Arbiter 2",
+      "role": "Arbiter",
+      "title": "ComHub Arbiter 02",
+      "passcode": "arbiter2",
+      "photoUrl": "/uploads/arbiter_2.jpg"
+    },
+    {
+      "id": "arbiter_3",
+      "name": "ComHub Arbiter 3",
+      "role": "Arbiter",
+      "title": "ComHub Arbiter 03",
+      "passcode": "arbiter3",
+      "photoUrl": "/uploads/arbiter_3.jpg"
+    }
+  ],
+  "evaluatorScores": {
+    "c1": {
+      "jomedy": {
+        "score": 7,
+        "submittedAt": "2026-10-31T19:08:21.704Z",
+        "notes": ""
+      },
+      "priyanshu": {
+        "score": 7,
+        "submittedAt": "2026-10-31T19:08:21.704Z",
+        "notes": ""
+      },
+      "arbiter_1": {
+        "score": 7,
+        "submittedAt": "2026-10-31T19:08:21.704Z",
+        "notes": ""
+      },
+      "arbiter_2": {
+        "score": 7,
+        "submittedAt": "2026-10-31T19:08:21.704Z",
+        "notes": ""
+      },
+      "arbiter_3": {
+        "score": 7.5,
+        "submittedAt": "2026-10-31T19:08:21.704Z",
+        "notes": ""
+      }
+    },
+    "c2": {
+      "jomedy": {
+        "score": 8.5,
+        "submittedAt": "2026-10-31T18:42:47.436Z"
+      },
+      "priyanshu": {
+        "score": 9,
+        "submittedAt": "2026-10-31T18:42:47.436Z"
+      },
+      "arbiter_1": {
+        "score": 8.5,
+        "submittedAt": "2026-10-31T18:42:47.436Z"
+      },
+      "arbiter_2": {
+        "score": 9,
+        "submittedAt": "2026-10-31T18:42:47.436Z"
+      },
+      "arbiter_3": {
+        "score": 9,
+        "submittedAt": "2026-10-31T18:42:47.436Z"
+      }
+    }
+  },
+  "contestantPredictions": {
+    "c1": {
+      "contestantId": "c1",
+      "token": "bgt-c1-2d51",
+      "predictedScore": 8,
+      "submittedAt": "2026-10-31T19:43:44.546Z",
+      "isLocked": true
+    },
+    "c2": {
+      "contestantId": "c2",
+      "token": "bgt-c2-4b7e",
+      "predictedScore": 8.8,
+      "submittedAt": "2026-10-31T18:02:47.436Z",
+      "isLocked": true
+    },
+    "c3": {
+      "contestantId": "c3",
+      "token": "bgt-c3-8c1d",
+      "predictedScore": null,
+      "submittedAt": null,
+      "isLocked": false
+    },
+    "c4": {
+      "contestantId": "c4",
+      "token": "bgt-c4-3e9a",
+      "predictedScore": null,
+      "submittedAt": null,
+      "isLocked": false
+    }
+  },
+  "contestantRevealStates": {
+    "c1": {
+      "predictionRevealed": false,
+      "panelScoreRevealed": false,
+      "comparisonRevealed": false
+    },
+    "c2": {
+      "predictionRevealed": false,
+      "panelScoreRevealed": false,
+      "comparisonRevealed": false
+    },
+    "c3": {
+      "predictionRevealed": false,
+      "panelScoreRevealed": false,
+      "comparisonRevealed": false
+    },
+    "c4": {
+      "predictionRevealed": false,
+      "panelScoreRevealed": false,
+      "comparisonRevealed": false
+    }
+  },
+  "showState": {
+    "activeSlide": "leaderboard",
+    "activeContestantId": "c1",
+    "revealState": {
+      "predictionRevealed": false,
+      "panelScoreRevealed": false,
+      "comparisonRevealed": false
+    },
+    "isOpeningPlayed": false,
+    "scoringFormula": "equal_average",
+    "lastEventId": "evt_1793479396343_k5etb",
+    "updatedAt": "2026-10-31T20:43:16.343Z"
+  },
+  "homepageSettings": {
+    "heroBannerUrl": "/uploads/hero_stage.jpg",
+    "heroTitle": "BITS GOT LATENT",
+    "heroDescription": "Watch collegiate talents predict their own panel score. Five evaluators, zero compromise, pure calibration latency.",
+    "featuredContestantId": "c1",
+    "rowVisibility": {
+      "featuredPerformers": true,
+      "allPerformers": true,
+      "guestJudges": true,
+      "competitionRules": true,
+      "standings": true
+    },
+    "rowOrder": [
+      "featuredPerformers",
+      "allPerformers",
+      "guestJudges",
+      "competitionRules",
+      "standings"
+    ]
+  }
+}

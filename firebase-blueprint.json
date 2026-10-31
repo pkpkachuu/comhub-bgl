@@ -1,0 +1,130 @@
+{
+  "entities": {
+    "Contestant": {
+      "title": "Contestant",
+      "description": "Information about a contestant performing on BITS GOT LATENT",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string", "maxLength": 100 },
+        "department": { "type": "string", "maxLength": 100 },
+        "year": { "type": "string", "maxLength": 50 },
+        "actTitle": { "type": "string", "maxLength": 120 },
+        "category": { "type": "string", "maxLength": 50 },
+        "bio": { "type": "string", "maxLength": 500 },
+        "photoUrl": { "type": "string", "maxLength": 500000 },
+        "order": { "type": "number" },
+        "accessCode": { "type": "string", "maxLength": 30 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "name", "department", "actTitle", "order", "accessCode"]
+    },
+    "MicroInfluencer": {
+      "title": "MicroInfluencer",
+      "description": "Featured celebrity or micro-influencer profile on the show",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string", "maxLength": 100 },
+        "handle": { "type": "string", "maxLength": 80 },
+        "role": { "type": "string", "maxLength": 100 },
+        "bio": { "type": "string", "maxLength": 500 },
+        "quote": { "type": "string", "maxLength": 250 },
+        "photoUrl": { "type": "string", "maxLength": 500000 }
+      },
+      "required": ["id", "name", "handle", "role", "bio"]
+    },
+    "PanelScore": {
+      "title": "PanelScore",
+      "description": "Confidential scoring sheet submitted by the judging panel",
+      "type": "object",
+      "properties": {
+        "contestantId": { "type": "string" },
+        "judgeScores": { "type": "array" },
+        "averageScore": { "type": "number" },
+        "isFinalized": { "type": "boolean" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["contestantId", "averageScore"]
+    },
+    "ContestantSubmission": {
+      "title": "ContestantSubmission",
+      "description": "Contestant self-predicted latent score, strictly confidential until revealed",
+      "type": "object",
+      "properties": {
+        "contestantId": { "type": "string" },
+        "predictedScore": { "type": "number" },
+        "submittedAt": { "type": "string", "format": "date-time" },
+        "isLocked": { "type": "boolean" }
+      },
+      "required": ["contestantId", "predictedScore", "isLocked"]
+    },
+    "ShowState": {
+      "title": "ShowState",
+      "description": "Current live presentation state machine and synchronized slide status",
+      "type": "object",
+      "properties": {
+        "activeSlide": { "type": "string" },
+        "activeContestantId": { "type": "string" },
+        "revealState": { "type": "object" },
+        "isOpeningPlayed": { "type": "boolean" },
+        "lastEventId": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["activeSlide", "revealState"]
+    },
+    "PresentationEvent": {
+      "title": "PresentationEvent",
+      "description": "Uniquely identified command events to prevent repeated animations",
+      "type": "object",
+      "properties": {
+        "eventId": { "type": "string" },
+        "eventType": { "type": "string" },
+        "payload": { "type": "object" },
+        "timestamp": { "type": "number" }
+      },
+      "required": ["eventId", "eventType", "timestamp"]
+    },
+    "AuthorizedUser": {
+      "title": "AuthorizedUser",
+      "description": "System admin or operator authorized to control the show",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin", "operator", "panel_lead"] }
+      },
+      "required": ["uid", "email", "role"]
+    }
+  },
+  "firestore": {
+    "/contestants/{contestantId}": {
+      "schema": { "$ref": "#/entities/Contestant" },
+      "description": "Contestant roster and public profiles"
+    },
+    "/microInfluencers/{influencerId}": {
+      "schema": { "$ref": "#/entities/MicroInfluencer" },
+      "description": "Featured judge profiles"
+    },
+    "/panelScores/{contestantId}": {
+      "schema": { "$ref": "#/entities/PanelScore" },
+      "description": "Confidential panel scores, protected from public query"
+    },
+    "/contestantSubmissions/{contestantId}": {
+      "schema": { "$ref": "#/entities/ContestantSubmission" },
+      "description": "Confidential contestant score predictions"
+    },
+    "/showState/current": {
+      "schema": { "$ref": "#/entities/ShowState" },
+      "description": "Global synchronized state of the live show"
+    },
+    "/presentationEvents/{eventId}": {
+      "schema": { "$ref": "#/entities/PresentationEvent" },
+      "description": "Audit and event log for slide choreography"
+    },
+    "/authorizedUsers/{uid}": {
+      "schema": { "$ref": "#/entities/AuthorizedUser" },
+      "description": "Admin authorization registry"
+    }
+  }
+}

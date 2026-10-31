@@ -1,0 +1,8 @@
+{
+  "name": "BITS GOT LATENT — Live Production System",
+  "description": "Netflix-inspired streaming platform clone, live production broadcast system, single-operator 5-judge scoring station, secure contestant prediction vault, and backstage producer control room for BITS Pilani.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

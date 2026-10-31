@@ -1,0 +1,62 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --netflix-black: #141414;
+    --netflix-dark: #0f0f0f;
+    --netflix-card: #181818;
+    --netflix-hover: #262626;
+    --netflix-border: #282828;
+    --netflix-red: #e50914;
+    --netflix-red-hover: #b81d24;
+    --netflix-grey: #808080;
+    --netflix-light-grey: #e5e5e5;
+  }
+
+  body {
+    background-color: #141414;
+    color: #ffffff;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    letter-spacing: -0.01em;
+  }
+
+  h1, h2, h3, h4, .font-display {
+    font-family: 'Inter', -apple-system, sans-serif;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+  }
+
+  .font-mono-numbers, .font-num {
+    font-family: 'Inter', -apple-system, sans-serif;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* Custom Scrollbar hide for horizontal carousel rows */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Netflix scrims and smooth fades */
+.netflix-hero-scrim {
+  background: linear-gradient(
+    77deg,
+    rgba(20, 20, 20, 0.95) 0%,
+    rgba(20, 20, 20, 0.75) 40%,
+    rgba(20, 20, 20, 0.2) 75%,
+    transparent 100%
+  );
+}
+
+.netflix-bottom-fade {
+  background: linear-gradient(180deg, transparent 0%, rgba(20, 20, 20, 0.6) 50%, #141414 100%);
+}
+
+.netflix-top-fade {
+  background: linear-gradient(180deg, rgba(20, 20, 20, 0.9) 0%, rgba(20, 20, 20, 0.4) 60%, transparent 100%);
+}
