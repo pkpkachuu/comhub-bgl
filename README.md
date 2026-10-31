@@ -51,7 +51,7 @@ The production server serves both the compiled React frontend from `dist` and al
 This repository is ready for deployment on [Render](https://render.com) as a single persistent Web Service:
 
 ### 1. Build and Start Commands
-- **Build Command:** `npm install && npm run build`
+- **Build Command:** `npm install --legacy-peer-deps && npm run build`
 - **Start Command:** `npm start`
 - **Health Check Path:** `/api/health`
 
