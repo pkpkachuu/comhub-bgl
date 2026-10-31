@@ -1,7 +1,6 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import { LeaderboardEntry } from '../../types';
-import { ComHubLogo } from '../common/ComHubLogo';
 
 interface SlideLeaderboardProps {
   leaderboard?: LeaderboardEntry[];
@@ -14,11 +13,6 @@ export const SlideLeaderboard: React.FC<SlideLeaderboardProps> = ({ leaderboard 
 
   return (
     <div className="relative w-full max-w-6xl mx-auto my-auto py-6 px-4 select-none font-sans text-white">
-      {/* Top-Right ComHub Logo Sticker */}
-      <div className="absolute top-0 right-4 sm:right-6">
-        <ComHubLogo size={68} />
-      </div>
-
       {/* Prominent Header Readable from Auditorium Back */}
       <motion.div
         initial={{ opacity: 0, y: -15 }}
