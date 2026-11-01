@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Bell, MonitorPlay, Shield, Award, Play } from 'lucide-react';
+import { Search, Play, Maximize2, Minimize2 } from 'lucide-react';
 
 interface NetflixTopNavProps {
   currentTab: string;
   onNavigateTab: (tab: string) => void;
   onSwitchExperience: (exp: 'streaming' | 'admin' | 'judge' | 'contestant' | 'presentation') => void;
+  onWatchLive?: () => void;
+  onToggleFullscreen?: () => void;
+  isFullscreen?: boolean;
   searchQuery: string;
   onSearchChange: (q: string) => void;
 }
@@ -13,6 +16,9 @@ export const NetflixTopNav: React.FC<NetflixTopNavProps> = ({
   currentTab,
   onNavigateTab,
   onSwitchExperience,
+  onWatchLive,
+  onToggleFullscreen,
+  isFullscreen,
   searchQuery,
   onSearchChange,
 }) => {
@@ -37,24 +43,16 @@ export const NetflixTopNav: React.FC<NetflixTopNavProps> = ({
     >
       {/* Left: Netflix-Style Brand Logo & Navigation Links */}
       <div className="flex items-center gap-6 md:gap-10">
-        <a
-          href="#home"
-          onClick={(e) => {
-            e.preventDefault();
-            onNavigateTab('home');
-          }}
-          className="flex items-center gap-2 group"
+        <button
+          onClick={() => onNavigateTab('home')}
+          className="text-left focus:outline-none"
         >
-          <span className="text-2xl md:text-3xl font-black text-[#e50914] tracking-tighter">
+          <span className="font-display text-2xl md:text-3xl font-black text-[#e50914] tracking-wider uppercase drop-shadow-md">
             BITS GOT LATENT
           </span>
-          <span className="text-[10px] bg-[#e50914] text-white px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">
-            LIVE
-          </span>
-        </a>
+        </button>
 
-        {/* Streaming Nav Links */}
-        <nav className="hidden lg:flex items-center gap-5 text-xs font-medium text-[#e5e5e5]">
+        <nav aria-label="Streaming showcase categories" className="hidden lg:flex items-center gap-5 text-sm font-medium">
           <button
             onClick={() => onNavigateTab('home')}
             className={`transition-colors hover:text-white ${
@@ -69,23 +67,15 @@ export const NetflixTopNav: React.FC<NetflixTopNavProps> = ({
               currentTab === 'contestants' ? 'text-white font-bold' : 'text-[#b3b3b3]'
             }`}
           >
-            Contestants
+            Performers
           </button>
           <button
-            onClick={() => onNavigateTab('guests')}
+            onClick={() => onNavigateTab('judges')}
             className={`transition-colors hover:text-white ${
-              currentTab === 'guests' ? 'text-white font-bold' : 'text-[#b3b3b3]'
+              currentTab === 'judges' ? 'text-white font-bold' : 'text-[#b3b3b3]'
             }`}
           >
-            Featured Guests
-          </button>
-          <button
-            onClick={() => onNavigateTab('rules')}
-            className={`transition-colors hover:text-white ${
-              currentTab === 'rules' ? 'text-white font-bold' : 'text-[#b3b3b3]'
-            }`}
-          >
-            Scoring Rules
+            Evaluators
           </button>
           <button
             onClick={() => onNavigateTab('standings')}
@@ -98,8 +88,8 @@ export const NetflixTopNav: React.FC<NetflixTopNavProps> = ({
         </nav>
       </div>
 
-      {/* Right: Search, Experience Quick Access, and Profile */}
-      <div className="flex items-center gap-3 md:gap-5 text-sm text-[#e5e5e5]">
+      {/* Right: Search, Fullscreen Mode Toggle & Live Broadcast Launch */}
+      <div className="flex items-center gap-3 md:gap-4 text-sm text-[#e5e5e5]">
         {/* Search Input */}
         <div className="relative flex items-center">
           {isSearchOpen ? (
@@ -109,7 +99,7 @@ export const NetflixTopNav: React.FC<NetflixTopNavProps> = ({
                 type="text"
                 value={searchQuery}
                 onChange={(e) => onSearchChange(e.target.value)}
-                placeholder="Titles, performers, genres..."
+                placeholder="Search performers, branches..."
                 className="bg-transparent text-xs text-white placeholder-[#808080] focus:outline-none w-36 sm:w-48"
                 autoFocus
                 onBlur={() => {
@@ -120,53 +110,35 @@ export const NetflixTopNav: React.FC<NetflixTopNavProps> = ({
           ) : (
             <button
               onClick={() => setIsSearchOpen(true)}
-              className="p-1 hover:text-white transition-colors"
+              className="p-1.5 hover:text-white text-neutral-300 transition-colors"
               title="Search performers"
             >
-              <Search className="w-5 h-5" />
+              <Search className="w-4 h-4" />
             </button>
           )}
         </div>
 
-        {/* Live Presentation Mode Quick Launch */}
+        {/* Dedicated Fullscreen Toggle Button (Safe Kiosk Mode) */}
+        {onToggleFullscreen && (
+          <button
+            onClick={onToggleFullscreen}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-neutral-900/90 hover:bg-neutral-800 text-neutral-200 hover:text-white text-xs font-semibold rounded transition-colors border border-neutral-700/80 shadow"
+            title={isFullscreen ? 'Exit Fullscreen' : 'Enter Immersive Fullscreen Mode'}
+          >
+            {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+            <span className="hidden sm:inline">{isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}</span>
+          </button>
+        )}
+
+        {/* Watch Live Broadcast Button (Enters Fullscreen Stage Automatically) */}
         <button
-          onClick={() => onSwitchExperience('presentation')}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-[#e50914] hover:bg-[#b81d24] text-white text-xs font-semibold rounded transition-colors shadow-md"
-          title="Launch Fullscreen Presentation for Projector"
+          onClick={onWatchLive || (() => onSwitchExperience('presentation'))}
+          className="flex items-center gap-2 px-3.5 py-1.5 bg-[#e50914] hover:bg-[#b81d24] text-white text-xs font-bold rounded transition-all shadow-md active:scale-95"
+          title="Watch Live Broadcast in Fullscreen"
         >
           <Play className="w-3.5 h-3.5 fill-current" />
-          <span className="hidden sm:inline">Launch Live Show</span>
+          <span>Watch Live Broadcast</span>
         </button>
-
-        {/* Role Switcher Drawer Menu */}
-        <div className="flex items-center gap-1 border-l border-[#333333] pl-3">
-          <button
-            onClick={() => onSwitchExperience('admin')}
-            className="p-1.5 text-xs text-[#b3b3b3] hover:text-white hover:bg-[#262626] rounded transition-colors flex items-center gap-1"
-            title="Open Producer Admin Console"
-          >
-            <Shield className="w-4 h-4" />
-            <span className="hidden xl:inline text-[11px]">Admin</span>
-          </button>
-
-          <button
-            onClick={() => onSwitchExperience('judge')}
-            className="p-1.5 text-xs text-[#b3b3b3] hover:text-white hover:bg-[#262626] rounded transition-colors flex items-center gap-1"
-            title="Open Single-Operator Judge Scoring"
-          >
-            <Award className="w-4 h-4" />
-            <span className="hidden xl:inline text-[11px]">Judge Room</span>
-          </button>
-
-          <button
-            onClick={() => onSwitchExperience('contestant')}
-            className="p-1.5 text-xs text-[#b3b3b3] hover:text-white hover:bg-[#262626] rounded transition-colors flex items-center gap-1"
-            title="Open Contestant Token Vault"
-          >
-            <MonitorPlay className="w-4 h-4" />
-            <span className="hidden xl:inline text-[11px]">Vault</span>
-          </button>
-        </div>
       </div>
     </header>
   );

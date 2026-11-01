@@ -12,11 +12,17 @@ export const TheatricalStageFrame: React.FC<TheatricalStageFrameProps> = ({ chil
     <div className={`relative w-full h-full min-h-screen bg-[#0e0e0e] text-white overflow-hidden flex flex-col justify-between select-none ${className || ''}`}>
       {/* Top Projector Header: Enlarged, High-Contrast Branding Readable from Auditorium Back */}
       <header className="relative z-30 w-full px-8 md:px-14 py-4 flex items-center justify-between border-b border-neutral-800/60 bg-black/40 backdrop-blur-sm">
-        <div className="flex items-center gap-3">
+        <button
+          onClick={() => {
+            window.location.hash = 'streaming';
+          }}
+          className="flex items-center gap-3 hover:opacity-85 transition-opacity text-left focus:outline-none cursor-pointer"
+          title="Return to Streaming Showcase"
+        >
           <span className="font-black text-2xl sm:text-3xl text-white tracking-tight">
             BITS GOT <span className="text-[#e50914]">LATENT</span>
           </span>
-        </div>
+        </button>
 
         {/* ComHub Official Logo Sticker in Top-Right Corner */}
         <div className="flex items-center">

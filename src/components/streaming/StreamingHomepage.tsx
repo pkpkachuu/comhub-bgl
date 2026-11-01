@@ -11,11 +11,17 @@ import { PublicPresentationState, Contestant, PublicContestant } from '../../typ
 interface StreamingHomepageProps {
   onSwitchExperience: (exp: 'streaming' | 'admin' | 'judge' | 'contestant' | 'presentation') => void;
   onSelectOnStage: (contestantId: string) => void;
+  onWatchLive?: () => void;
+  onToggleFullscreen?: () => void;
+  isFullscreen?: boolean;
 }
 
 export const StreamingHomepage: React.FC<StreamingHomepageProps> = ({
   onSwitchExperience,
   onSelectOnStage,
+  onWatchLive,
+  onToggleFullscreen,
+  isFullscreen,
 }) => {
   const [data, setData] = useState<PublicPresentationState | null>(null);
   const [currentTab, setCurrentTab] = useState('home');
@@ -89,6 +95,9 @@ export const StreamingHomepage: React.FC<StreamingHomepageProps> = ({
         currentTab={currentTab}
         onNavigateTab={handleNavigateTab}
         onSwitchExperience={onSwitchExperience}
+        onWatchLive={onWatchLive}
+        onToggleFullscreen={onToggleFullscreen}
+        isFullscreen={isFullscreen}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
       />
@@ -97,7 +106,7 @@ export const StreamingHomepage: React.FC<StreamingHomepageProps> = ({
       <NetflixHeroBanner
         homepageSettings={data?.homepageSettings}
         featuredContestant={featured as unknown as Contestant}
-        onWatchLive={() => onSwitchExperience('presentation')}
+        onWatchLive={onWatchLive || (() => onSwitchExperience('presentation'))}
         onExploreContestants={() => handleNavigateTab('contestants')}
         onOpenDetails={(c) => setSelectedContestant(c)}
       />

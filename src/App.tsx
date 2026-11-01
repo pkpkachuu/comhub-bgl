@@ -68,12 +68,34 @@ export default function App() {
     }
   };
 
+  const handleWatchLive = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(() => {});
+      setIsFullscreenProjector(true);
+    }
+    switchMode('presentation');
+  };
+
   useEffect(() => {
     const handleFsChange = () => {
       setIsFullscreenProjector(!!document.fullscreenElement);
     };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(target?.tagName)) {
+        return;
+      }
+      if (e.key === 'f' || e.key === 'F') {
+        toggleFullscreen();
+      }
+    };
+
     document.addEventListener('fullscreenchange', handleFsChange);
-    return () => document.removeEventListener('fullscreenchange', handleFsChange);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFsChange);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
   }, []);
 
   return (
@@ -83,6 +105,9 @@ export default function App() {
         <StreamingHomepage
           onSwitchExperience={switchMode}
           onSelectOnStage={handleSelectOnStage}
+          onWatchLive={handleWatchLive}
+          onToggleFullscreen={toggleFullscreen}
+          isFullscreen={isFullscreenProjector}
         />
       )}
 
