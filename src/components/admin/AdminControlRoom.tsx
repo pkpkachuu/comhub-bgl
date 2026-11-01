@@ -48,14 +48,18 @@ export const AdminControlRoom: React.FC = () => {
   // Guest Judge Editing State
   const [editingGuest, setEditingGuest] = useState<MicroInfluencer | null>(null);
   const guestFileRef = useRef<HTMLInputElement>(null);
+  const [isUploadingGuest, setIsUploadingGuest] = useState(false);
 
   // ComHub Arbiter Editing State
   const [editingArbiter, setEditingArbiter] = useState<EvaluatorProfile | null>(null);
   const arbiterFileRef = useRef<HTMLInputElement>(null);
+  const [isUploadingArbiter, setIsUploadingArbiter] = useState(false);
 
   // Homepage Settings State
   const [homepageForm, setHomepageForm] = useState<HomepageSettings | null>(null);
   const heroFileRef = useRef<HTMLInputElement>(null);
+  const [isUploadingBanner, setIsUploadingBanner] = useState(false);
+  const isEditingHomepageRef = useRef(false);
 
   // Act-specific reveal reset confirmation state
   const [actToResetConfirm, setActToResetConfirm] = useState<Contestant | null>(null);
@@ -69,7 +73,7 @@ export const AdminControlRoom: React.FC = () => {
       if (res.ok) {
         const json: AdminAllData = await res.json();
         setData(json);
-        if (!homepageForm && json.homepageSettings) {
+        if (!isEditingHomepageRef.current && json.homepageSettings) {
           setHomepageForm(json.homepageSettings);
         }
       }
@@ -133,42 +137,78 @@ export const AdminControlRoom: React.FC = () => {
     setTimeout(() => setStatusMessage(null), 4000);
   };
 
-  // Image upload helper
-  const handleFileUpload = async (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      if (!['image/jpeg', 'image/png', 'image/webp', 'image/jpg'].includes(file.type)) {
-        reject(new Error('Only JPG, PNG and WebP files are supported.'));
-        return;
-      }
-      if (file.size > 10 * 1024 * 1024) {
-        reject(new Error('Image must be under 10MB.'));
-        return;
-      }
-
+  // Resizes and optimizes images (e.g. 10MB phone camera shots) to high-def 2560px JPEG before upload
+  const optimizeImage = async (file: File): Promise<string> => {
+    return new Promise((resolve) => {
       const reader = new FileReader();
-      reader.onload = async () => {
-        try {
-          const res = await fetch('/api/upload-image', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              imageBase64: reader.result as string,
-              fileName: file.name,
-            }),
-          });
-          const json = await res.json();
-          if (res.ok && json.url) {
-            resolve(json.url);
-          } else {
-            reject(new Error(json.error || 'Upload failed'));
+      reader.onload = (e) => {
+        const rawResult = e.target?.result as string;
+        const img = new Image();
+        img.onload = () => {
+          const maxDim = 2560; // 2K Ultra HD quality
+          let width = img.width;
+          let height = img.height;
+
+          if (width > maxDim || height > maxDim) {
+            if (width > height) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            } else {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
           }
-        } catch (err) {
-          reject(err);
-        }
+
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            resolve(rawResult);
+            return;
+          }
+
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'high';
+          ctx.drawImage(img, 0, 0, width, height);
+
+          const isPng = file.type === 'image/png';
+          const optimizedBase64 = canvas.toDataURL(isPng ? 'image/png' : 'image/jpeg', 0.92);
+          resolve(optimizedBase64);
+        };
+        img.onerror = () => resolve(rawResult);
+        img.src = rawResult;
       };
-      reader.onerror = () => reject(new Error('File reading error'));
+      reader.onerror = () => resolve('');
       reader.readAsDataURL(file);
     });
+  };
+
+  // Image upload helper with auto-compression
+  const handleFileUpload = async (file: File): Promise<string> => {
+    if (!['image/jpeg', 'image/png', 'image/webp', 'image/jpg'].includes(file.type)) {
+      throw new Error('Only JPG, PNG and WebP files are supported.');
+    }
+
+    const base64Data = await optimizeImage(file);
+    if (!base64Data) {
+      throw new Error('Could not process image file.');
+    }
+
+    const res = await fetch('/api/upload-image', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        imageBase64: base64Data,
+        fileName: file.name,
+      }),
+    });
+
+    const json = await res.json();
+    if (res.ok && json.url) {
+      return json.url;
+    }
+    throw new Error(json.error || 'Upload failed');
   };
 
   // ==========================================
@@ -409,6 +449,7 @@ export const AdminControlRoom: React.FC = () => {
         body: JSON.stringify(homepageForm),
       });
       if (res.ok) {
+        isEditingHomepageRef.current = false;
         showFeedback('Homepage settings saved and broadcasted.');
         fetchAdminData();
       }
@@ -1012,7 +1053,7 @@ export const AdminControlRoom: React.FC = () => {
                   )}
                 </div>
 
-                <div className="flex items-center gap-2 pt-2">
+                <div className="flex flex-wrap items-center gap-2 pt-2">
                   <input
                     type="file"
                     ref={heroFileRef}
@@ -1021,30 +1062,97 @@ export const AdminControlRoom: React.FC = () => {
                     onChange={async (e) => {
                       const file = e.target.files?.[0];
                       if (!file) return;
+                      setIsUploadingBanner(true);
+                      isEditingHomepageRef.current = true;
                       try {
                         const url = await handleFileUpload(file);
-                        setHomepageForm((prev) => (prev ? { ...prev, heroBannerUrl: url } : null));
-                        showFeedback('Hero banner image uploaded.');
+                        const updatedForm: HomepageSettings = {
+                          ...(homepageForm || {
+                            heroTitle: 'BITS GOT LATENT',
+                            heroDescription: 'Watch collegiate talents predict their own panel score.',
+                            featuredContestantId: 'c1',
+                            rowVisibility: { featuredPerformers: true, allPerformers: true, guestJudges: true, competitionRules: true, standings: true },
+                            rowOrder: ['featuredPerformers', 'allPerformers', 'guestJudges', 'competitionRules', 'standings'],
+                          }),
+                          heroBannerUrl: url,
+                        };
+                        setHomepageForm(updatedForm);
+
+                        // CRITICAL: Immediately persist to backend & broadcast so it never reverts!
+                        const res = await fetch('/api/admin/homepage-settings/update', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify(updatedForm),
+                        });
+                        if (res.ok) {
+                          isEditingHomepageRef.current = false;
+                          showFeedback('Hero banner uploaded and saved live to showcase!');
+                          fetchAdminData();
+                        } else {
+                          showFeedback('Banner uploaded, please click Save Homepage Settings.', true);
+                        }
                       } catch (err: any) {
                         showFeedback(err.message, true);
+                      } finally {
+                        setIsUploadingBanner(false);
                       }
                     }}
                   />
                   <button
                     type="button"
+                    disabled={isUploadingBanner}
                     onClick={() => heroFileRef.current?.click()}
-                    className="px-3 py-1.5 bg-[#262626] hover:bg-[#333333] rounded text-xs font-semibold text-white flex items-center gap-1.5"
+                    className="px-3 py-1.5 bg-[#262626] hover:bg-[#333333] rounded text-xs font-semibold text-white flex items-center gap-1.5 disabled:opacity-50"
                   >
-                    <Upload className="w-3.5 h-3.5" />
-                    <span>Upload New Banner</span>
+                    <Upload className={`w-3.5 h-3.5 ${isUploadingBanner ? 'animate-bounce text-[#e50914]' : ''}`} />
+                    <span>{isUploadingBanner ? 'Uploading...' : 'Upload New Banner'}</span>
                   </button>
                   <input
                     type="text"
                     value={homepageForm.heroBannerUrl}
-                    onChange={(e) => setHomepageForm((prev) => (prev ? { ...prev, heroBannerUrl: e.target.value } : null))}
+                    onChange={(e) => {
+                      isEditingHomepageRef.current = true;
+                      setHomepageForm((prev) => (prev ? { ...prev, heroBannerUrl: e.target.value } : null));
+                    }}
+                    onBlur={async () => {
+                      if (!homepageForm?.heroBannerUrl) return;
+                      try {
+                        await fetch('/api/admin/homepage-settings/update', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify(homepageForm),
+                        });
+                        isEditingHomepageRef.current = false;
+                        showFeedback('Hero banner URL saved live.');
+                        fetchAdminData();
+                      } catch {}
+                    }}
                     placeholder="or paste image URL"
-                    className="flex-1 bg-[#121212] border border-[#333333] rounded px-3 py-1.5 text-xs text-white"
+                    className="flex-1 bg-[#121212] border border-[#333333] rounded px-3 py-1.5 text-xs text-white min-w-[200px]"
                   />
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (!homepageForm) return;
+                      try {
+                        const res = await fetch('/api/admin/homepage-settings/update', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify(homepageForm),
+                        });
+                        if (res.ok) {
+                          isEditingHomepageRef.current = false;
+                          showFeedback('Hero banner URL applied & saved live.');
+                          fetchAdminData();
+                        }
+                      } catch {
+                        showFeedback('Failed to save banner URL.', true);
+                      }
+                    }}
+                    className="px-2.5 py-1.5 bg-[#1f1f1f] hover:bg-[#2a2a2a] border border-[#383838] rounded text-xs text-neutral-300 font-semibold"
+                  >
+                    Apply URL
+                  </button>
                 </div>
               </div>
 
@@ -1209,8 +1317,21 @@ export const AdminControlRoom: React.FC = () => {
                         setIsUploadingPhoto(true);
                         try {
                           const url = await handleFileUpload(file);
-                          setEditingContestant((prev) => (prev ? { ...prev, photoUrl: url } : null));
-                          showFeedback('Photograph uploaded successfully.');
+                          const updated = { ...editingContestant, photoUrl: url };
+                          setEditingContestant(updated);
+
+                          // If editing an existing performer, also auto-save immediately to backend!
+                          if (updated.id && updated.name && updated.actTitle) {
+                            await fetch('/api/admin/contestants/upsert', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify(updated),
+                            });
+                            fetchAdminData();
+                            showFeedback('Photograph uploaded & saved live!');
+                          } else {
+                            showFeedback('Photograph uploaded. Click Save Performer below.');
+                          }
                         } catch (err: any) {
                           showFeedback(err.message, true);
                         } finally {
@@ -1373,22 +1494,33 @@ export const AdminControlRoom: React.FC = () => {
                       onChange={async (e) => {
                         const file = e.target.files?.[0];
                         if (!file) return;
+                        setIsUploadingGuest(true);
                         try {
                           const url = await handleFileUpload(file);
-                          setEditingGuest((prev) => (prev ? { ...prev, photoUrl: url } : null));
-                          showFeedback('Judge photo updated.');
+                          const updated = { ...editingGuest, photoUrl: url };
+                          setEditingGuest(updated);
+                          await fetch('/api/admin/guests/update', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(updated),
+                          });
+                          showFeedback('Judge portrait uploaded & saved live!');
+                          fetchAdminData();
                         } catch (err: any) {
                           showFeedback(err.message, true);
+                        } finally {
+                          setIsUploadingGuest(false);
                         }
                       }}
                     />
                     <button
                       type="button"
+                      disabled={isUploadingGuest}
                       onClick={() => guestFileRef.current?.click()}
-                      className="px-3 py-1.5 bg-[#262626] hover:bg-[#333333] rounded text-xs text-white font-semibold flex items-center gap-1.5"
+                      className="px-3 py-1.5 bg-[#262626] hover:bg-[#333333] rounded text-xs text-white font-semibold flex items-center gap-1.5 disabled:opacity-50"
                     >
-                      <Upload className="w-3.5 h-3.5" />
-                      <span>Upload New Portrait</span>
+                      <Upload className={`w-3.5 h-3.5 ${isUploadingGuest ? 'animate-bounce text-[#e50914]' : ''}`} />
+                      <span>{isUploadingGuest ? 'Uploading...' : 'Upload New Portrait'}</span>
                     </button>
                     <input
                       type="text"
@@ -1484,22 +1616,33 @@ export const AdminControlRoom: React.FC = () => {
                       onChange={async (e) => {
                         const file = e.target.files?.[0];
                         if (!file) return;
+                        setIsUploadingArbiter(true);
                         try {
                           const url = await handleFileUpload(file);
-                          setEditingArbiter((prev) => (prev ? { ...prev, photoUrl: url } : null));
-                          showFeedback('Arbiter photo updated.');
+                          const updated = { ...editingArbiter, photoUrl: url };
+                          setEditingArbiter(updated);
+                          await fetch('/api/admin/arbiters/update', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(updated),
+                          });
+                          showFeedback('Arbiter photo uploaded & saved live!');
+                          fetchAdminData();
                         } catch (err: any) {
                           showFeedback(err.message, true);
+                        } finally {
+                          setIsUploadingArbiter(false);
                         }
                       }}
                     />
                     <button
                       type="button"
+                      disabled={isUploadingArbiter}
                       onClick={() => arbiterFileRef.current?.click()}
-                      className="px-3 py-1.5 bg-[#262626] hover:bg-[#333333] rounded text-xs text-white font-semibold flex items-center gap-1.5"
+                      className="px-3 py-1.5 bg-[#262626] hover:bg-[#333333] rounded text-xs text-white font-semibold flex items-center gap-1.5 disabled:opacity-50"
                     >
-                      <Upload className="w-3.5 h-3.5" />
-                      <span>Upload Photo</span>
+                      <Upload className={`w-3.5 h-3.5 ${isUploadingArbiter ? 'animate-bounce text-[#e50914]' : ''}`} />
+                      <span>{isUploadingArbiter ? 'Uploading...' : 'Upload Photo'}</span>
                     </button>
                     <input
                       type="text"

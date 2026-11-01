@@ -21,8 +21,8 @@ import {
 const app = express();
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
-app.use(express.json({ limit: '12mb' }));
-app.use(express.urlencoded({ extended: true, limit: '12mb' }));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Configurable persistent data and uploads directories for production deployment
 const DATA_DIR = process.env.DATA_DIR ? path.resolve(process.env.DATA_DIR) : process.cwd();
@@ -698,15 +698,32 @@ app.post('/api/upload-image', (req: Request, res: Response) => {
       buffer = Buffer.from(imageBase64, 'base64');
     }
 
-    if (buffer.length > 10 * 1024 * 1024) {
-      return res.status(400).json({ error: 'File size exceeds 10MB limit.' });
+    if (buffer.length > 30 * 1024 * 1024) {
+      return res.status(400).json({ error: 'File size exceeds 30MB limit.' });
     }
 
     const cleanBaseName = (fileName || 'photo').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 20);
     const uniqueFileName = `${cleanBaseName}_${Date.now()}_${crypto.randomBytes(3).toString('hex')}.${ext}`;
     const destination = path.join(UPLOADS_DIR, uniqueFileName);
 
+    // Save to primary uploads directory
     fs.writeFileSync(destination, buffer);
+
+    // Mirror to fallback public/uploads and dist/uploads to prevent missing asset errors across environments
+    try {
+      if (path.resolve(destination) !== path.resolve(STATIC_UPLOADS_FALLBACK, uniqueFileName)) {
+        if (!fs.existsSync(STATIC_UPLOADS_FALLBACK)) fs.mkdirSync(STATIC_UPLOADS_FALLBACK, { recursive: true });
+        fs.writeFileSync(path.join(STATIC_UPLOADS_FALLBACK, uniqueFileName), buffer);
+      }
+    } catch {}
+
+    try {
+      const distUploads = path.resolve(process.cwd(), 'dist', 'uploads');
+      if (fs.existsSync(path.resolve(process.cwd(), 'dist'))) {
+        if (!fs.existsSync(distUploads)) fs.mkdirSync(distUploads, { recursive: true });
+        fs.writeFileSync(path.join(distUploads, uniqueFileName), buffer);
+      }
+    } catch {}
 
     const publicUrl = `/uploads/${uniqueFileName}`;
     return res.json({ success: true, url: publicUrl, fileName: uniqueFileName });
