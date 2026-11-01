@@ -22,7 +22,10 @@ export const PresentationMode: React.FC<PresentationModeProps> = ({ initialState
 
     const fetchState = async () => {
       try {
-        const res = await fetch('/api/public/show-state');
+        const res = await fetch(`/api/public/show-state?_t=${Date.now()}`, {
+          cache: 'no-store',
+          headers: { 'Cache-Control': 'no-cache' },
+        });
         if (res.ok && isMounted) {
           const json = await res.json();
           setData(json);
@@ -35,40 +38,61 @@ export const PresentationMode: React.FC<PresentationModeProps> = ({ initialState
     // 1. Initial fetch immediately
     fetchState();
 
-    // 2. Dual-fail-safe 1-second background polling
-    // Guarantees Device 1 (Admin) and Device 2 (Projector) stay 100% in sync even if network packets drop
-    const pollInterval = setInterval(fetchState, 1000);
+    // 2. Dual-fail-safe 800ms background polling (guarantees sync across multiple devices even over cellular/Wi-Fi)
+    const pollInterval = setInterval(fetchState, 800);
 
-    // 3. Instant SSE Real-time Synchronization (0ms latency)
+    // 3. Instant SSE Real-time Synchronization (sub-millisecond broadcast)
     let eventSource: EventSource | null = null;
-    try {
-      eventSource = new EventSource('/api/events');
-
-      eventSource.onmessage = (event) => {
+    const connectSSE = () => {
+      if (!isMounted) return;
+      if (eventSource) {
         try {
-          const message = JSON.parse(event.data);
-          if (message.payload?.publicState) {
-            if (isMounted) setData(message.payload.publicState);
-          } else {
+          eventSource.close();
+        } catch {}
+      }
+
+      try {
+        eventSource = new EventSource('/api/events');
+
+        eventSource.onopen = () => {
+          fetchState();
+        };
+
+        eventSource.onmessage = (event) => {
+          try {
+            const message = JSON.parse(event.data);
+            if (message.payload?.publicState) {
+              if (isMounted) setData(message.payload.publicState);
+            } else {
+              fetchState();
+            }
+          } catch {
             fetchState();
           }
-        } catch {
-          fetchState();
-        }
-      };
+        };
 
-      eventSource.onerror = () => {
-        // SSE will reconnect automatically, while pollInterval maintains continuous sync
-      };
-    } catch (e) {
-      console.warn('SSE initialization failed, fallback to 1s polling', e);
-    }
+        eventSource.onerror = () => {
+          try {
+            eventSource?.close();
+          } catch {}
+          setTimeout(() => {
+            if (isMounted) connectSSE();
+          }, 1500);
+        };
+      } catch (e) {
+        console.warn('SSE initialization error, relying on background sync', e);
+      }
+    };
+
+    connectSSE();
 
     return () => {
       isMounted = false;
       clearInterval(pollInterval);
       if (eventSource) {
-        eventSource.close();
+        try {
+          eventSource.close();
+        } catch {}
       }
     };
   }, []);

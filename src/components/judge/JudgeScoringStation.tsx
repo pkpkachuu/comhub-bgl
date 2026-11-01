@@ -37,28 +37,46 @@ export const JudgeScoringStation: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [statusMsg, setStatusMsg] = useState<{ text: string; isError?: boolean } | null>(null);
+  const [isConnected, setIsConnected] = useState(false);
+  const hasUnsavedChanges = React.useRef(false);
+  const currentContestantIdRef = React.useRef<string | null>(null);
 
-  const fetchScoresForContestant = async (contestantId?: string) => {
+  const fetchScoresForContestant = async (contestantId?: string, forceOverwrite = false) => {
     setIsLoading(true);
     try {
       const url = contestantId
-        ? `/api/operator/contestant-scores?contestantId=${contestantId}`
-        : `/api/operator/contestant-scores`;
-      const res = await fetch(url);
+        ? `/api/operator/contestant-scores?contestantId=${contestantId}&_t=${Date.now()}`
+        : `/api/operator/contestant-scores?_t=${Date.now()}`;
+      const res = await fetch(url, {
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache' },
+      });
       if (res.ok) {
         const json = await res.json();
+        const incomingContestantId = json.contestant?.id;
+        const isDifferentContestant = incomingContestantId !== currentContestantIdRef.current;
+
         setContestant(json.contestant);
         setEvaluators(json.evaluators);
-        setScores({
-          jomedy: json.scores?.jomedy ?? null,
-          priyanshu: json.scores?.priyanshu ?? null,
-          arbiter_1: json.scores?.arbiter_1 ?? null,
-          arbiter_2: json.scores?.arbiter_2 ?? null,
-          arbiter_3: json.scores?.arbiter_3 ?? null,
-        });
+        currentContestantIdRef.current = incomingContestantId || null;
+
+        // Only overwrite form scores if it's a new contestant, or forced (save/refresh), or no unsaved edits
+        if (forceOverwrite || isDifferentContestant || !hasUnsavedChanges.current) {
+          setScores({
+            jomedy: json.scores?.jomedy ?? null,
+            priyanshu: json.scores?.priyanshu ?? null,
+            arbiter_1: json.scores?.arbiter_1 ?? null,
+            arbiter_2: json.scores?.arbiter_2 ?? null,
+            arbiter_3: json.scores?.arbiter_3 ?? null,
+          });
+          hasUnsavedChanges.current = false;
+        }
       }
 
-      const adminRes = await fetch('/api/public/show-state');
+      const adminRes = await fetch(`/api/public/show-state?_t=${Date.now()}`, {
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache' },
+      });
       if (adminRes.ok) {
         const adminJson = await adminRes.json();
         setAllContestants(adminJson.contestants || []);
@@ -71,20 +89,63 @@ export const JudgeScoringStation: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchScoresForContestant();
-    const eventSource = new EventSource('/api/events');
-    eventSource.onmessage = (e) => {
+    let isMounted = true;
+    fetchScoresForContestant(undefined, true);
+
+    let eventSource: EventSource | null = null;
+    const connectSSE = () => {
+      if (!isMounted) return;
+      if (eventSource) {
+        try {
+          eventSource.close();
+        } catch {}
+      }
+
       try {
-        const msg = JSON.parse(e.data);
-        if (msg.eventType === 'SHOW_STATE_CHANGED' || msg.eventType === 'CONTESTANT_SELECTED') {
-          fetchScoresForContestant();
-        }
+        eventSource = new EventSource('/api/events');
+        eventSource.onopen = () => {
+          if (isMounted) setIsConnected(true);
+        };
+        eventSource.onmessage = (e) => {
+          try {
+            const msg = JSON.parse(e.data);
+            if (msg.eventType === 'CONTESTANT_SELECTED') {
+              // Producer switched active act on stage
+              const newActId = msg.payload?.activeContestantId;
+              if (newActId && newActId !== currentContestantIdRef.current) {
+                fetchScoresForContestant(newActId, true);
+              }
+            } else if (msg.eventType === 'ROSTER_UPDATED') {
+              fetchScoresForContestant(currentContestantIdRef.current || undefined, false);
+            }
+          } catch {}
+        };
+        eventSource.onerror = () => {
+          if (isMounted) setIsConnected(false);
+          try {
+            eventSource?.close();
+          } catch {}
+          setTimeout(() => {
+            if (isMounted) connectSSE();
+          }, 1500);
+        };
       } catch {}
     };
-    return () => eventSource.close();
+
+    connectSSE();
+
+    return () => {
+      isMounted = false;
+      if (eventSource) {
+        try {
+          eventSource.close();
+        } catch {}
+      }
+    };
   }, []);
 
   const handleScoreChange = (evId: EvaluatorId, valStr: string) => {
+    hasUnsavedChanges.current = true;
     if (valStr === '') {
       setScores((prev) => ({ ...prev, [evId]: null }));
       return;
@@ -96,6 +157,7 @@ export const JudgeScoringStation: React.FC = () => {
   };
 
   const handleQuickChip = (evId: EvaluatorId, stepScore: number) => {
+    hasUnsavedChanges.current = true;
     setScores((prev) => ({ ...prev, [evId]: stepScore }));
   };
 
@@ -134,6 +196,7 @@ export const JudgeScoringStation: React.FC = () => {
 
       const json = await res.json();
       if (res.ok) {
+        hasUnsavedChanges.current = false;
         setStatusMsg({ text: 'All evaluator scores successfully saved to the show database!' });
       } else {
         setStatusMsg({ text: json.error || 'Failed to save scores.', isError: true });
@@ -169,6 +232,16 @@ export const JudgeScoringStation: React.FC = () => {
               <span className="text-xs px-2 py-0.5 bg-neutral-800 rounded text-neutral-400">
                 SCORING DESK
               </span>
+              <span
+                className={`text-[10px] font-mono px-2 py-0.5 rounded flex items-center gap-1.5 ${
+                  isConnected
+                    ? 'bg-green-950/90 text-green-300 border border-green-700'
+                    : 'bg-neutral-800 text-neutral-400'
+                }`}
+              >
+                <span className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-green-400 animate-pulse' : 'bg-neutral-500'}`} />
+                {isConnected ? 'LIVE SYNCED' : 'CONNECTING...'}
+              </span>
             </div>
             <h1 className="text-xl md:text-2xl font-bold text-white mt-1">
               Five-Evaluator Panel Scoring Desk
@@ -180,10 +253,10 @@ export const JudgeScoringStation: React.FC = () => {
 
           <div className="flex items-center gap-3">
             <button
-              onClick={() => fetchScoresForContestant(contestant?.id)}
+              onClick={() => fetchScoresForContestant(contestant?.id, true)}
               disabled={isLoading}
               className="p-2 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 rounded transition-colors"
-              title="Refresh scores from server"
+              title="Force reload scores from server"
             >
               <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
             </button>

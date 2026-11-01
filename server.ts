@@ -44,6 +44,17 @@ if (path.resolve(UPLOADS_DIR) !== path.resolve(STATIC_UPLOADS_FALLBACK) && fs.ex
   app.use('/uploads', express.static(STATIC_UPLOADS_FALLBACK));
 }
 
+// Anti-cache middleware: prevents stale responses on multiple laptops and proxies
+app.use('/api', (_req: Request, res: Response, next) => {
+  res.set({
+    'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
+    'Pragma': 'no-cache',
+    'Expires': '0',
+    'Surrogate-Control': 'no-store',
+  });
+  next();
+});
+
 // Health check endpoints for deployment monitoring
 app.get('/api/health', (_req: Request, res: Response) => {
   res.json({
@@ -592,34 +603,70 @@ function broadcastEvent(eventType: string, payload: any) {
   showState.lastEventId = eventId;
   persistData();
 
-  const dataString = `data: ${JSON.stringify({ eventId, eventType, payload, timestamp: Date.now() })}\n\n`;
-  sseClients.forEach((client) => {
+  // Guarantee every broadcast event carries the latest public presentation state
+  if (!payload.publicState) {
     try {
-      client.res.write(dataString);
+      payload.publicState = buildPublicPresentationState();
     } catch {}
+  }
+
+  const dataString = `data: ${JSON.stringify({ eventId, eventType, payload, timestamp: Date.now() })}\n\n`;
+  sseClients = sseClients.filter((client) => {
+    try {
+      if (client.res.writableEnded || client.res.destroyed) return false;
+      client.res.write(dataString);
+      if (typeof (client.res as any).flush === 'function') {
+        (client.res as any).flush();
+      }
+      return true;
+    } catch {
+      return false;
+    }
   });
 }
 
+// Aggressive 5s heartbeat to prevent proxy connection drops on Render, Cloudflare, or local Wi-Fi
 setInterval(() => {
-  sseClients.forEach((client) => {
+  sseClients = sseClients.filter((client) => {
     try {
+      if (client.res.writableEnded || client.res.destroyed) return false;
       client.res.write(': heartbeat\n\n');
-    } catch {}
+      if (typeof (client.res as any).flush === 'function') {
+        (client.res as any).flush();
+      }
+      return true;
+    } catch {
+      return false;
+    }
   });
-}, 15000);
+}, 5000);
 
 app.get('/api/events', (req: Request, res: Response) => {
   res.writeHead(200, {
     'Content-Type': 'text/event-stream',
-    'Cache-Control': 'no-cache',
+    'Cache-Control': 'no-cache, no-transform',
     'Connection': 'keep-alive',
+    'X-Accel-Buffering': 'no', // Critical: disables reverse-proxy buffering on Render & Nginx
+    'Access-Control-Allow-Origin': '*',
   });
   res.write('\n');
+  if (typeof (res as any).flush === 'function') {
+    (res as any).flush();
+  }
 
   const clientId = `client_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
   sseClients.push({ id: clientId, res });
 
-  res.write(`data: ${JSON.stringify({ eventType: 'SYNC_STATE', payload: { publicState: buildPublicPresentationState() } })}\n\n`);
+  const initialPayload = JSON.stringify({
+    eventId: `init_${Date.now()}`,
+    eventType: 'SYNC_STATE',
+    payload: { publicState: buildPublicPresentationState() },
+    timestamp: Date.now(),
+  });
+  res.write(`data: ${initialPayload}\n\n`);
+  if (typeof (res as any).flush === 'function') {
+    (res as any).flush();
+  }
 
   req.on('close', () => {
     sseClients = sseClients.filter((c) => c.id !== clientId);

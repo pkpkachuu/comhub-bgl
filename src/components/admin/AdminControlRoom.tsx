@@ -62,7 +62,10 @@ export const AdminControlRoom: React.FC = () => {
 
   const fetchAdminData = async () => {
     try {
-      const res = await fetch('/api/admin/all-data');
+      const res = await fetch(`/api/admin/all-data?_t=${Date.now()}`, {
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache' },
+      });
       if (res.ok) {
         const json: AdminAllData = await res.json();
         setData(json);
@@ -76,12 +79,53 @@ export const AdminControlRoom: React.FC = () => {
   };
 
   useEffect(() => {
+    let isMounted = true;
     fetchAdminData();
-    const eventSource = new EventSource('/api/events');
-    eventSource.onmessage = () => {
-      fetchAdminData();
+
+    // Dual-fail-safe polling fallback for Admin Console
+    const pollInterval = setInterval(() => {
+      if (isMounted) fetchAdminData();
+    }, 1200);
+
+    let eventSource: EventSource | null = null;
+    const connectSSE = () => {
+      if (!isMounted) return;
+      if (eventSource) {
+        try {
+          eventSource.close();
+        } catch {}
+      }
+
+      try {
+        eventSource = new EventSource('/api/events');
+        eventSource.onopen = () => {
+          if (isMounted) fetchAdminData();
+        };
+        eventSource.onmessage = () => {
+          if (isMounted) fetchAdminData();
+        };
+        eventSource.onerror = () => {
+          try {
+            eventSource?.close();
+          } catch {}
+          setTimeout(() => {
+            if (isMounted) connectSSE();
+          }, 1500);
+        };
+      } catch {}
     };
-    return () => eventSource.close();
+
+    connectSSE();
+
+    return () => {
+      isMounted = false;
+      clearInterval(pollInterval);
+      if (eventSource) {
+        try {
+          eventSource.close();
+        } catch {}
+      }
+    };
   }, []);
 
   const showFeedback = (text: string, isError: boolean = false) => {

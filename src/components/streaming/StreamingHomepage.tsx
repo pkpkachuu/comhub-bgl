@@ -30,7 +30,10 @@ export const StreamingHomepage: React.FC<StreamingHomepageProps> = ({
 
   const fetchState = async () => {
     try {
-      const res = await fetch('/api/public/show-state');
+      const res = await fetch(`/api/public/show-state?_t=${Date.now()}`, {
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache' },
+      });
       if (res.ok) {
         const json = await res.json();
         setData(json);
@@ -41,12 +44,61 @@ export const StreamingHomepage: React.FC<StreamingHomepageProps> = ({
   };
 
   useEffect(() => {
+    let isMounted = true;
     fetchState();
-    const eventSource = new EventSource('/api/events');
-    eventSource.onmessage = () => {
-      fetchState();
+
+    const pollInterval = setInterval(() => {
+      if (isMounted) fetchState();
+    }, 1500);
+
+    let eventSource: EventSource | null = null;
+    const connectSSE = () => {
+      if (!isMounted) return;
+      if (eventSource) {
+        try {
+          eventSource.close();
+        } catch {}
+      }
+
+      try {
+        eventSource = new EventSource('/api/events');
+        eventSource.onopen = () => {
+          if (isMounted) fetchState();
+        };
+        eventSource.onmessage = (event) => {
+          try {
+            const message = JSON.parse(event.data);
+            if (message.payload?.publicState) {
+              if (isMounted) setData(message.payload.publicState);
+            } else {
+              if (isMounted) fetchState();
+            }
+          } catch {
+            if (isMounted) fetchState();
+          }
+        };
+        eventSource.onerror = () => {
+          try {
+            eventSource?.close();
+          } catch {}
+          setTimeout(() => {
+            if (isMounted) connectSSE();
+          }, 2000);
+        };
+      } catch {}
     };
-    return () => eventSource.close();
+
+    connectSSE();
+
+    return () => {
+      isMounted = false;
+      clearInterval(pollInterval);
+      if (eventSource) {
+        try {
+          eventSource.close();
+        } catch {}
+      }
+    };
   }, []);
 
   const handleNavigateTab = (tab: string) => {
