@@ -187,15 +187,7 @@ export default function App() {
             </header>
           )}
 
-          {/* Floating Exit Button in Native Fullscreen */}
-          {isFullscreenProjector && (
-            <button
-              onClick={toggleFullscreen}
-              className="fixed top-4 right-4 z-50 px-3 py-1.5 bg-black/85 hover:bg-black border border-[#333333] rounded text-xs text-white font-mono-numbers shadow-2xl"
-            >
-              Exit Fullscreen [Esc]
-            </button>
-          )}
+
 
           {/* Operational Viewports */}
           <main className="flex-1 w-full relative">
